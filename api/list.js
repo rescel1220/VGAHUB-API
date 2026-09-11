@@ -1,5 +1,4 @@
 
-
 export default async function handler(req, res) {
 
     // =====================================================
@@ -88,10 +87,43 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // FOLDER DOWNLOAD
+        // AMBIL TYPE DARI URL
         // =================================================
 
-        const path = "Download";
+        const type =
+            req.query.type;
+
+
+        // =================================================
+        // TENTUKAN FOLDER
+        // =================================================
+
+        let path;
+
+
+        if (type === "manual") {
+
+            // Manual Book
+            path =
+                "Download/ManualBook";
+
+        }
+
+        else if (type === "galeri") {
+
+            // Foto / Video
+            path =
+                "Download/FotoVideo";
+
+        }
+
+        else {
+
+            // Kompatibilitas dengan sistem lama
+            path =
+                "Download";
+
+        }
 
 
         // =================================================
@@ -154,7 +186,7 @@ export default async function handler(req, res) {
                     success: false,
 
                     message:
-                        "Gagal membaca folder Download",
+                        `Gagal membaca folder ${path}`,
 
                     github:
                         data
@@ -197,6 +229,12 @@ export default async function handler(req, res) {
         return res.status(200).json({
 
             success: true,
+
+            type:
+                type || "all",
+
+            folder:
+                path,
 
             count:
                 files.length,
