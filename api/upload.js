@@ -1,3 +1,4 @@
+
 export default async function handler(req, res) {
 
     // =====================================================
@@ -5,10 +6,12 @@ export default async function handler(req, res) {
     // =====================================================
 
     res.setHeader("Access-Control-Allow-Origin", "*");
+
     res.setHeader(
         "Access-Control-Allow-Methods",
         "GET, POST, OPTIONS"
     );
+
     res.setHeader(
         "Access-Control-Allow-Headers",
         "Content-Type"
@@ -66,7 +69,11 @@ export default async function handler(req, res) {
         // AMBIL DATA
         // =================================================
 
-        const { filename, content } = req.body;
+        const {
+            filename,
+            content,
+            type
+        } = req.body;
 
 
         // =================================================
@@ -80,6 +87,105 @@ export default async function handler(req, res) {
                 success: false,
 
                 message: "filename atau content kosong"
+
+            });
+
+        }
+
+
+        // =================================================
+        // TENTUKAN JENIS FILE
+        // =================================================
+
+        const fileType =
+            type === "manual"
+                ? "manual"
+                : "galeri";
+
+
+        // =================================================
+        // AMBIL EXTENSION FILE
+        // =================================================
+
+        const extension =
+            filename
+                .toLowerCase()
+                .split(".")
+                .pop();
+
+
+        // =================================================
+        // FORMAT MANUAL BOOK
+        // =================================================
+
+        const allowedManual = [
+
+            "txt",
+            "pdf",
+            "csv",
+            "docx"
+
+        ];
+
+
+        // =================================================
+        // FORMAT FOTO / VIDEO
+        // =================================================
+
+        const allowedGallery = [
+
+            "jpg",
+            "jpeg",
+            "png",
+            "gif",
+            "webp",
+            "bmp",
+            "svg",
+
+            "mp4",
+            "webm",
+            "ogg",
+            "mov"
+
+        ];
+
+
+        // =================================================
+        // VALIDASI MANUAL BOOK
+        // =================================================
+
+        if (
+            fileType === "manual" &&
+            !allowedManual.includes(extension)
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Format Manual Book tidak diizinkan. Gunakan TXT, PDF, CSV, atau DOCX."
+
+            });
+
+        }
+
+
+        // =================================================
+        // VALIDASI FOTO / VIDEO
+        // =================================================
+
+        if (
+            fileType === "galeri" &&
+            !allowedGallery.includes(extension)
+        ) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Format Foto/Video tidak diizinkan."
 
             });
 
@@ -127,11 +233,28 @@ export default async function handler(req, res) {
 
 
         // =================================================
+        // TENTUKAN FOLDER GITHUB
+        // =================================================
+
+        let folder;
+
+        if (fileType === "manual") {
+
+            folder = "Download/ManualBook";
+
+        } else {
+
+            folder = "Download";
+
+        }
+
+
+        // =================================================
         // PATH GITHUB
         // =================================================
 
         const path =
-            `Download/${safeFilename}`;
+            `${folder}/${safeFilename}`;
 
 
         // =================================================
@@ -188,7 +311,7 @@ export default async function handler(req, res) {
         const githubData = {
 
             message:
-                `Upload file ${safeFilename}`,
+                `Upload ${fileType}: ${safeFilename}`,
 
             content:
                 content,
@@ -288,6 +411,9 @@ export default async function handler(req, res) {
             filename:
                 safeFilename,
 
+            type:
+                fileType,
+
             path:
                 path,
 
@@ -314,3 +440,4 @@ export default async function handler(req, res) {
     }
 
 }
+
