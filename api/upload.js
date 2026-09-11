@@ -5,7 +5,10 @@ export default async function handler(req, res) {
     // CORS
     // =====================================================
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+        "Access-Control-Allow-Origin",
+        "*"
+    );
 
     res.setHeader(
         "Access-Control-Allow-Methods",
@@ -72,7 +75,7 @@ export default async function handler(req, res) {
         const {
             filename,
             content,
-            type
+            folder
         } = req.body;
 
 
@@ -80,13 +83,14 @@ export default async function handler(req, res) {
         // CEK DATA
         // =================================================
 
-        if (!filename || !content) {
+        if (!filename || !content || !folder) {
 
             return res.status(400).json({
 
                 success: false,
 
-                message: "filename atau content kosong"
+                message:
+                    "filename, content, atau folder kosong"
 
             });
 
@@ -94,98 +98,30 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // TENTUKAN JENIS FILE
+        // FOLDER YANG DIIZINKAN
         // =================================================
 
-        const fileType =
-            type === "manual"
-                ? "manual"
-                : "galeri";
+        const allowedFolders = [
 
-
-        // =================================================
-        // AMBIL EXTENSION FILE
-        // =================================================
-
-        const extension =
-            filename
-                .toLowerCase()
-                .split(".")
-                .pop();
-
-
-        // =================================================
-        // FORMAT MANUAL BOOK
-        // =================================================
-
-        const allowedManual = [
-
-            "txt",
-            "pdf",
-            "csv",
-            "docx"
+            "Hmi",
+            "Converter",
+            "MCU"
 
         ];
 
 
         // =================================================
-        // FORMAT FOTO / VIDEO
+        // VALIDASI FOLDER
         // =================================================
 
-        const allowedGallery = [
-
-            "jpg",
-            "jpeg",
-            "png",
-            "gif",
-            "webp",
-            "bmp",
-            "svg",
-
-            "mp4",
-            "webm",
-            "ogg",
-            "mov"
-
-        ];
-
-
-        // =================================================
-        // VALIDASI MANUAL BOOK
-        // =================================================
-
-        if (
-            fileType === "manual" &&
-            !allowedManual.includes(extension)
-        ) {
+        if (!allowedFolders.includes(folder)) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "Format Manual Book tidak diizinkan. Gunakan TXT, PDF, CSV, atau DOCX."
-
-            });
-
-        }
-
-
-        // =================================================
-        // VALIDASI FOTO / VIDEO
-        // =================================================
-
-        if (
-            fileType === "galeri" &&
-            !allowedGallery.includes(extension)
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Format Foto/Video tidak diizinkan."
+                    "Folder tidak diizinkan. Gunakan Hmi, Converter, atau MCU."
 
             });
 
@@ -209,6 +145,10 @@ export default async function handler(req, res) {
             process.env.GITHUB_BRANCH || "main";
 
 
+        // =================================================
+        // CEK ENVIRONMENT
+        // =================================================
+
         if (!token || !owner || !repo) {
 
             return res.status(500).json({
@@ -230,23 +170,6 @@ export default async function handler(req, res) {
         const safeFilename =
             filename
                 .replace(/[^a-zA-Z0-9._-]/g, "_");
-
-
-        // =================================================
-        // TENTUKAN FOLDER GITHUB
-        // =================================================
-
-        let folder;
-
-        if (fileType === "manual") {
-
-            folder = "Download/ManualBook";
-
-        } else {
-
-            folder = "Download";
-
-        }
 
 
         // =================================================
@@ -293,6 +216,10 @@ export default async function handler(req, res) {
             });
 
 
+        // =================================================
+        // AMBIL SHA FILE LAMA
+        // =================================================
+
         if (checkResponse.ok) {
 
             const existingFile =
@@ -311,7 +238,7 @@ export default async function handler(req, res) {
         const githubData = {
 
             message:
-                `Upload ${fileType}: ${safeFilename}`,
+                `Upload ${folder}: ${safeFilename}`,
 
             content:
                 content,
@@ -365,6 +292,10 @@ export default async function handler(req, res) {
             });
 
 
+        // =================================================
+        // HASIL GITHUB
+        // =================================================
+
         const result =
             await uploadResponse.json();
 
@@ -379,6 +310,7 @@ export default async function handler(req, res) {
                 "GitHub error:",
                 result
             );
+
 
             return res
                 .status(uploadResponse.status)
@@ -411,8 +343,8 @@ export default async function handler(req, res) {
             filename:
                 safeFilename,
 
-            type:
-                fileType,
+            folder:
+                folder,
 
             path:
                 path,
@@ -424,6 +356,10 @@ export default async function handler(req, res) {
 
 
     } catch (error) {
+
+        // =================================================
+        // ERROR SERVER
+        // =================================================
 
         console.error(error);
 
