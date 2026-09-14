@@ -1,4 +1,4 @@
-
+```javascript
 export default async function handler(req, res) {
 
     // =====================================================
@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
 
     // =====================================================
-    // HANDLE PREFLIGHT BROWSER
+    // PREFLIGHT
     // =====================================================
 
     if (req.method === "OPTIONS") {
@@ -50,7 +50,7 @@ export default async function handler(req, res) {
 
 
     // =====================================================
-    // HANYA POST UNTUK UPLOAD
+    // HANYA POST
     // =====================================================
 
     if (req.method !== "POST") {
@@ -75,22 +75,23 @@ export default async function handler(req, res) {
         const {
             filename,
             content,
-            folder
+            folder,
+            subfolder
         } = req.body;
 
 
         // =================================================
-        // CEK DATA
+        // CEK DATA WAJIB
         // =================================================
 
-        if (!filename || !content || !folder) {
+        if (!filename || !content || !folder || !subfolder) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "filename, content, atau folder kosong"
+                    "filename, content, folder, atau subfolder kosong"
 
             });
 
@@ -98,7 +99,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // NORMALISASI NAMA FOLDER
+        // NORMALISASI FOLDER UTAMA
         // =================================================
 
         const folderLower =
@@ -109,7 +110,17 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // FOLDER YANG DIIZINKAN
+        // NORMALISASI SUBFOLDER
+        // =================================================
+
+        let safeSubfolder =
+            subfolder
+                .toString()
+                .trim();
+
+
+        // =================================================
+        // VALIDASI FOLDER UTAMA
         // =================================================
 
         const allowedFolders = [
@@ -121,10 +132,6 @@ export default async function handler(req, res) {
         ];
 
 
-        // =================================================
-        // VALIDASI FOLDER
-        // =================================================
-
         if (!allowedFolders.includes(folderLower)) {
 
             return res.status(400).json({
@@ -133,6 +140,35 @@ export default async function handler(req, res) {
 
                 message:
                     "Folder tidak diizinkan. Gunakan hmi, converter, atau mcu."
+
+            });
+
+        }
+
+
+        // =================================================
+        // AMANKAN NAMA SUBFOLDER
+        // =================================================
+
+        safeSubfolder =
+            safeSubfolder
+                .replace(/[<>:"/\\|?*]/g, "_")
+                .replace(/\.\./g, "_")
+                .replace(/\s+/g, "_");
+
+
+        // =================================================
+        // CEK SUBFOLDER
+        // =================================================
+
+        if (!safeSubfolder) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Nama subfolder tidak valid"
 
             });
 
@@ -204,10 +240,21 @@ export default async function handler(req, res) {
 
         // =================================================
         // PATH GITHUB
+        //
+        // CONTOH:
+        //
+        // converter/test/file.pdf
+        //
         // =================================================
 
         const path =
-            `${folderLower}/${safeFilename}`;
+            `${folderLower}/${safeSubfolder}/${safeFilename}`;
+
+
+        console.log(
+            "UPLOAD PATH:",
+            path
+        );
 
 
         // =================================================
@@ -215,7 +262,16 @@ export default async function handler(req, res) {
         // =================================================
 
         const githubUrl =
-            `https://api.github.com/repos/${owner}/${repo}/contents/${encodeURIComponent(path)}`;
+            `https://api.github.com/repos/${owner}/${repo}/contents/${path
+                .split("/")
+                .map(encodeURIComponent)
+                .join("/")}`;
+
+
+        console.log(
+            "GITHUB URL:",
+            githubUrl
+        );
 
 
         // =================================================
@@ -226,24 +282,27 @@ export default async function handler(req, res) {
 
 
         const checkResponse =
-            await fetch(githubUrl, {
+            await fetch(
+                githubUrl,
+                {
 
-                method: "GET",
+                    method: "GET",
 
-                headers: {
+                    headers: {
 
-                    "Authorization":
-                        `Bearer ${token}`,
+                        "Authorization":
+                            `Bearer ${token}`,
 
-                    "Accept":
-                        "application/vnd.github+json",
+                        "Accept":
+                            "application/vnd.github+json",
 
-                    "X-GitHub-Api-Version":
-                        "2022-11-28"
+                        "X-GitHub-Api-Version":
+                            "2022-11-28"
+
+                    }
 
                 }
-
-            });
+            );
 
 
         // =================================================
@@ -254,6 +313,7 @@ export default async function handler(req, res) {
 
             const existingFile =
                 await checkResponse.json();
+
 
             sha =
                 existingFile.sha;
@@ -268,7 +328,7 @@ export default async function handler(req, res) {
         const githubData = {
 
             message:
-                `Upload ${folderLower}: ${safeFilename}`,
+                `Upload ${folderLower}/${safeSubfolder}: ${safeFilename}`,
 
             content:
                 content,
@@ -296,30 +356,33 @@ export default async function handler(req, res) {
         // =================================================
 
         const uploadResponse =
-            await fetch(githubUrl, {
+            await fetch(
+                githubUrl,
+                {
 
-                method: "PUT",
+                    method: "PUT",
 
-                headers: {
+                    headers: {
 
-                    "Authorization":
-                        `Bearer ${token}`,
+                        "Authorization":
+                            `Bearer ${token}`,
 
-                    "Accept":
-                        "application/vnd.github+json",
+                        "Accept":
+                            "application/vnd.github+json",
 
-                    "Content-Type":
-                        "application/json",
+                        "Content-Type":
+                            "application/json",
 
-                    "X-GitHub-Api-Version":
-                        "2022-11-28"
+                        "X-GitHub-Api-Version":
+                            "2022-11-28"
 
-                },
+                    },
 
-                body:
-                    JSON.stringify(githubData)
+                    body:
+                        JSON.stringify(githubData)
 
-            });
+                }
+            );
 
 
         // =================================================
@@ -376,6 +439,9 @@ export default async function handler(req, res) {
             folder:
                 folderLower,
 
+            subfolder:
+                safeSubfolder,
+
             path:
                 path,
 
@@ -391,7 +457,10 @@ export default async function handler(req, res) {
         // ERROR SERVER
         // =================================================
 
-        console.error(error);
+        console.error(
+            "UPLOAD ERROR:",
+            error
+        );
 
 
         return res.status(500).json({
@@ -406,4 +475,4 @@ export default async function handler(req, res) {
     }
 
 }
-
+```
