@@ -1,4 +1,4 @@
-
+```javascript
 export default async function handler(req, res) {
 
     // =====================================================
@@ -98,14 +98,25 @@ export default async function handler(req, res) {
 
 
         // =================================================
+        // NORMALISASI NAMA FOLDER
+        // =================================================
+
+        const folderLower =
+            folder
+                .toString()
+                .trim()
+                .toLowerCase();
+
+
+        // =================================================
         // FOLDER YANG DIIZINKAN
         // =================================================
 
         const allowedFolders = [
 
-            "Hmi",
-            "Converter",
-            "MCU"
+            "hmi",
+            "converter",
+            "mcu"
 
         ];
 
@@ -114,14 +125,14 @@ export default async function handler(req, res) {
         // VALIDASI FOLDER
         // =================================================
 
-        if (!allowedFolders.includes(folder)) {
+        if (!allowedFolders.includes(folderLower)) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "Folder tidak diizinkan. Gunakan Hmi, Converter, atau MCU."
+                    "Folder tidak diizinkan. Gunakan hmi, converter, atau mcu."
 
             });
 
@@ -169,7 +180,26 @@ export default async function handler(req, res) {
 
         const safeFilename =
             filename
+                .toString()
                 .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+
+        // =================================================
+        // CEK NAMA FILE
+        // =================================================
+
+        if (!safeFilename) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Nama file tidak valid"
+
+            });
+
+        }
 
 
         // =================================================
@@ -177,7 +207,7 @@ export default async function handler(req, res) {
         // =================================================
 
         const path =
-            `${folder}/${safeFilename}`;
+            `${folderLower}/${safeFilename}`;
 
 
         // =================================================
@@ -238,7 +268,7 @@ export default async function handler(req, res) {
         const githubData = {
 
             message:
-                `Upload ${folder}: ${safeFilename}`,
+                `Upload ${folderLower}: ${safeFilename}`,
 
             content:
                 content,
@@ -344,7 +374,7 @@ export default async function handler(req, res) {
                 safeFilename,
 
             folder:
-                folder,
+                folderLower,
 
             path:
                 path,
@@ -376,4 +406,4 @@ export default async function handler(req, res) {
     }
 
 }
-
+```
