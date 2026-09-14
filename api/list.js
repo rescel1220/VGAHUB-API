@@ -1,4 +1,4 @@
-```javascript
+
 // =====================================================
 // VGA HUB CENTER
 // SCRIPT.JS
@@ -1265,4 +1265,4 @@ document.addEventListener(
 
     }
 );
-```
+
