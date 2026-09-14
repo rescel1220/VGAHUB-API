@@ -72,11 +72,12 @@ export default async function handler(req, res) {
         // AMBIL DATA
         // =================================================
 
-        const {
-            filename,
-            content,
-            folder
-        } = req.body;
+    const {
+        filename,
+        content,
+        folder,
+        subfolder
+    } = req.body;
 
 
         // =================================================
