@@ -1,33 +1,16 @@
-
 export default async function handler(req, res) {
+
     // =====================================================
     // CORS
     // =====================================================
-    res.setHeader(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
 
-    res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET, OPTIONS"
-    );
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
-
-
-    // =====================================================
-    // PREFLIGHT
-    // =====================================================
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
-    // =====================================================
-    // HANYA GET
-    // =====================================================
 
     if (req.method !== "GET") {
         return res.status(405).json({
@@ -36,121 +19,168 @@ export default async function handler(req, res) {
         });
     }
 
+    // =====================================================
+    // ENV
+    // =====================================================
+
+    const token = process.env.GITHUB_TOKEN;
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+    const branch = process.env.GITHUB_BRANCH || "main";
+
+    if (!token || !owner || !repo) {
+        return res.status(500).json({
+            success: false,
+            message: "Environment variable GitHub belum lengkap"
+        });
+    }
+
+    // =====================================================
+    // PARAMETER
+    // =====================================================
+
+    let { folder, subfolder } = req.query;
+
+    if (!folder) {
+        return res.status(400).json({
+            success: false,
+            message: "Parameter folder wajib diisi"
+        });
+    }
+
+    // =====================================================
+    // NORMALISASI FOLDER UTAMA
+    // =====================================================
+
+    folder = folder.toLowerCase().trim();
+
+    const allowedFolders = [
+        "converter",
+        "mcu",
+        "hmi"
+    ];
+
+    if (!allowedFolders.includes(folder)) {
+        return res.status(400).json({
+            success: false,
+            message: "Folder tidak diizinkan"
+        });
+    }
+
+    // =====================================================
+    // SANITASI SUBFOLDER
+    // =====================================================
+
+    if (subfolder) {
+
+        subfolder = subfolder
+            .trim()
+            .replace(/[<>:"/\\|?*]/g, "_");
+
+        if (!subfolder) {
+            return res.status(400).json({
+                success: false,
+                message: "Nama subfolder tidak valid"
+            });
+        }
+    }
+
+    // =====================================================
+    // BUAT PATH GITHUB
+    // =====================================================
+
+    let githubPath = folder;
+
+    if (subfolder) {
+        githubPath += "/" + subfolder;
+    }
+
+    const encodedPath = githubPath
+        .split("/")
+        .map(part => encodeURIComponent(part))
+        .join("/");
+
+    const githubUrl =
+        `https://api.github.com/repos/${owner}/${repo}/contents/${encodedPath}?ref=${encodeURIComponent(branch)}`;
+
+    // =====================================================
+    // REQUEST KE GITHUB
+    // =====================================================
 
     try {
-        // =================================================
-        // AMBIL FOLDER UTAMA
-        // =================================================
-        const folder = req.query.folder;
-        if (!folder) {
-            return res.status(400).json({
+
+        const response = await fetch(githubUrl, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "User-Agent": "VGAHUB"
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+
+            return res.status(response.status).json({
                 success: false,
-                message: "Parameter folder belum diberikan"
+                message: data.message || "Gagal membaca GitHub"
             });
         }
+
         // =================================================
-        // NORMALISASI
+        // JIKA MEMBACA SUBFOLDER
         // =================================================
 
-        const folderLower = folder
-                .toString()
-                .trim()
-                .toLowerCase();
-        // =================================================
-        // FOLDER YANG DIIZINKAN
-        // =================================================
-        const allowedFolders = [
-            "hmi",
-            "converter",
-            "mcu"
-        ];
+        if (subfolder) {
 
+            const files = data
+                .filter(item => item.type === "file")
+                .map(item => ({
+                    name: item.name,
+                    path: item.path,
+                    size: item.size,
+                    download_url: item.download_url,
+                    html_url: item.html_url
+                }));
 
-        if (!allowedFolders.includes(folderLower)) {
-            return res.status(400).json({
-                success: false,
-                message: "Folder tidak diizinkan"
+            return res.status(200).json({
+                success: true,
+                type: "files",
+                folder: folder,
+                subfolder: subfolder,
+                count: files.length,
+                files: files
             });
         }
+
         // =================================================
-        // ENVIRONMENT VARIABLES
+        // JIKA MEMBACA FOLDER UTAMA
         // =================================================
 
-        const token = process.env.GITHUB_TOKEN;
-        const owner = process.env.GITHUB_OWNER;
-        const repo = process.env.GITHUB_REPO;
-        const branch = process.env.GITHUB_BRANCH || "main";
-        // =================================================
-        // CEK ENVIRONMENT
-        // =================================================
-        if (!token || !owner || !repo) {
-            return res.status(500).json({
-                success: false,
-                message: "Environment Variables belum lengkap"
-            });
-        }
-        // =================================================
-        // URL GITHUB
-        // =================================================
+        const folders = data
+            .filter(item => item.type === "dir")
+            .map(item => ({
+                name: item.name,
+                path: item.path
+            }));
 
-        const githubUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${folderLower}?ref=${branch}`;
-        // =================================================
-        // REQUEST KE GITHUB
-        // =================================================
-
-        const githubResponse =
-            await fetch(githubUrl, {
-
-                method: "GET",
-                headers: {
-                    "Authorization":`Bearer ${token}`,
-                    "Accept":"application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28"
-                }
-            });
-        // =================================================
-        // ERROR GITHUB
-        // =================================================
-
-        if (!githubResponse.ok) {
-            const error = await githubResponse.json();
-            console.error( "GitHub error:", error);
-            return res
-                .status(githubResponse.status)
-                .json({
-                    success: false,
-                    message: "Gagal membaca folder GitHub",
-                    github: error
-                });
-        }
-        // =================================================
-        // DATA GITHUB
-        // =================================================
-        const items = await githubResponse.json();
-        // =================================================
-        // AMBIL SUBFOLDER SAJA
-        // =================================================
-
-        const folders =
-            items
-                .filter( item =>item.type === "dir" )
-                .map( item => ({name: item.name, path: item.path  })
-                );
-        // =================================================
-        // HASIL
-        // =================================================
         return res.status(200).json({
             success: true,
-            folder: folderLower,
+            type: "folders",
+            folder: folder,
             count: folders.length,
             folders: folders
         });
+
     } catch (error) {
-        console.error(error);
+
+        console.error("LIST ERROR:", error);
+
         return res.status(500).json({
             success: false,
             message: error.message
         });
     }
 }
-
