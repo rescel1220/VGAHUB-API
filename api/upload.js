@@ -72,12 +72,11 @@ export default async function handler(req, res) {
         // AMBIL DATA
         // =================================================
 
-    const {
-        filename,
-        content,
-        folder,
-        subfolder
-    } = req.body;
+        const {
+            filename,
+            content,
+            folder
+        } = req.body;
 
 
         // =================================================
@@ -183,21 +182,11 @@ export default async function handler(req, res) {
             filename
                 .toString()
                 .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+
         // =================================================
         // CEK NAMA FILE
         // =================================================
-        const safeSubfolder =
-            subfolder
-                .toString()
-                .trim()
-                .replace(/[^a-zA-Z0-9._-]/g, "_");
-
-        if (!safeSubfolder) {
-            return res.status(400).json({
-                success: false,
-                message: "Nama folder tidak valid"
-                });
-        }
 
         if (!safeFilename) {
 
@@ -217,7 +206,8 @@ export default async function handler(req, res) {
         // PATH GITHUB
         // =================================================
 
-    const path = `${folderLower}/${safeSubfolder}/${safeFilename}`;
+        const path =
+            `${folderLower}/${safeFilename}`;
 
 
         // =================================================
