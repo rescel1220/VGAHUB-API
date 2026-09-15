@@ -5,10 +5,7 @@ export default async function handler(req, res) {
     // CORS
     // =====================================================
 
-    res.setHeader(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
+    res.setHeader("Access-Control-Allow-Origin", "*");
 
     res.setHeader(
         "Access-Control-Allow-Methods",
@@ -26,14 +23,12 @@ export default async function handler(req, res) {
     // =====================================================
 
     if (req.method === "OPTIONS") {
-
         return res.status(200).end();
-
     }
 
 
     // =====================================================
-    // TEST API DENGAN GET
+    // TEST API
     // =====================================================
 
     if (req.method === "GET") {
@@ -42,7 +37,7 @@ export default async function handler(req, res) {
 
             success: true,
 
-            message: "API Vercel aktif"
+            message: "API Vercel aktif - Binary Upload"
 
         });
 
@@ -69,29 +64,39 @@ export default async function handler(req, res) {
     try {
 
         // =================================================
-        // AMBIL DATA
+        // AMBIL PARAMETER DARI URL
         // =================================================
 
-        const {
-            filename,
-            content,
-            folder,
-            subfolder
-        } = req.body;
+        const filename =
+            req.query.filename;
+
+        const folder =
+            req.query.folder;
+
+        const subfolder =
+            req.query.subfolder;
+
+
+        console.log("=================================");
+        console.log("UPLOAD REQUEST");
+        console.log("filename :", filename);
+        console.log("folder   :", folder);
+        console.log("subfolder:", subfolder);
+        console.log("=================================");
 
 
         // =================================================
         // CEK DATA WAJIB
         // =================================================
 
-        if (!filename || !content || !folder || !subfolder) {
+        if (!filename || !folder || !subfolder) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "filename, content, folder, atau subfolder kosong"
+                    "filename, folder, atau subfolder kosong"
 
             });
 
@@ -99,7 +104,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // NORMALISASI FOLDER UTAMA
+        // NORMALISASI FOLDER
         // =================================================
 
         const folderLower =
@@ -110,17 +115,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // NORMALISASI SUBFOLDER
-        // =================================================
-
-        let safeSubfolder =
-            subfolder
-                .toString()
-                .trim();
-
-
-        // =================================================
-        // VALIDASI FOLDER UTAMA
+        // FOLDER YANG DIIZINKAN
         // =================================================
 
         const allowedFolders = [
@@ -147,8 +142,14 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // AMANKAN NAMA SUBFOLDER
+        // AMANKAN SUBFOLDER
         // =================================================
+
+        let safeSubfolder =
+            subfolder
+                .toString()
+                .trim();
+
 
         safeSubfolder =
             safeSubfolder
@@ -169,6 +170,40 @@ export default async function handler(req, res) {
 
                 message:
                     "Nama subfolder tidak valid"
+
+            });
+
+        }
+
+
+        // =================================================
+        // AMANKAN NAMA FILE
+        // =================================================
+
+        let safeFilename =
+            filename
+                .toString()
+                .trim();
+
+
+        safeFilename =
+            safeFilename
+                .replace(/[<>:"/\\|?*]/g, "_")
+                .replace(/\.\./g, "_");
+
+
+        // =================================================
+        // CEK NAMA FILE
+        // =================================================
+
+        if (!safeFilename) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Nama file tidak valid"
 
             });
 
@@ -211,39 +246,11 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // AMANKAN NAMA FILE
-        // =================================================
-
-        const safeFilename =
-            filename
-                .toString()
-                .replace(/[^a-zA-Z0-9._-]/g, "_");
-
-
-        // =================================================
-        // CEK NAMA FILE
-        // =================================================
-
-        if (!safeFilename) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Nama file tidak valid"
-
-            });
-
-        }
-
-
-        // =================================================
         // PATH GITHUB
         //
         // CONTOH:
         //
-        // converter/test/file.pdf
+        // converter/scn/manual.pdf
         //
         // =================================================
 
@@ -275,7 +282,82 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // CEK FILE SUDAH ADA ATAU BELUM
+        // BACA FILE BINARY
+        // =================================================
+
+        const arrayBuffer =
+            await req.arrayBuffer();
+
+
+        const buffer =
+            Buffer.from(arrayBuffer);
+
+
+        console.log(
+            "FILE SIZE:",
+            buffer.length,
+            "bytes"
+        );
+
+
+        // =================================================
+        // CEK FILE KOSONG
+        // =================================================
+
+        if (buffer.length === 0) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "File kosong atau tidak diterima server"
+
+            });
+
+        }
+
+
+        // =================================================
+        // BATAS GITHUB
+        //
+        // GitHub Contents API tidak cocok untuk file
+        // yang sangat besar.
+        //
+        // Kita beri batas aman 95 MB.
+        // =================================================
+
+        const maxSize =
+            95 * 1024 * 1024;
+
+
+        if (buffer.length > maxSize) {
+
+            return res.status(413).json({
+
+                success: false,
+
+                message:
+                    "Ukuran file terlalu besar. Maksimal sekitar 95 MB."
+
+            });
+
+        }
+
+
+        // =================================================
+        // UBAH BINARY -> BASE64
+        //
+        // Hanya dilakukan di SERVER.
+        // Browser tidak lagi melakukan Base64.
+        // =================================================
+
+        const content =
+            buffer.toString("base64");
+
+
+        // =================================================
+        // CEK FILE SUDAH ADA
         // =================================================
 
         let sha = undefined;
@@ -306,14 +388,13 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // AMBIL SHA FILE LAMA
+        // AMBIL SHA
         // =================================================
 
         if (checkResponse.ok) {
 
             const existingFile =
                 await checkResponse.json();
-
 
             sha =
                 existingFile.sha;
@@ -340,7 +421,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // JIKA FILE SUDAH ADA
+        // FILE SUDAH ADA
         // =================================================
 
         if (sha) {
@@ -354,6 +435,11 @@ export default async function handler(req, res) {
         // =================================================
         // UPLOAD KE GITHUB
         // =================================================
+
+        console.log(
+            "Mengirim file ke GitHub..."
+        );
+
 
         const uploadResponse =
             await fetch(
@@ -386,7 +472,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // HASIL GITHUB
+        // BACA RESPONSE GITHUB
         // =================================================
 
         const result =
@@ -426,6 +512,12 @@ export default async function handler(req, res) {
         // BERHASIL
         // =================================================
 
+        console.log(
+            "UPLOAD BERHASIL:",
+            path
+        );
+
+
         return res.status(200).json({
 
             success: true,
@@ -444,6 +536,9 @@ export default async function handler(req, res) {
 
             path:
                 path,
+
+            size:
+                buffer.length,
 
             url:
                 result.content?.html_url || null
@@ -468,7 +563,7 @@ export default async function handler(req, res) {
             success: false,
 
             message:
-                error.message
+                error.message || "Terjadi kesalahan server"
 
         });
 
