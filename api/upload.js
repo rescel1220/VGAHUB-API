@@ -1,11 +1,74 @@
 
+// =====================================================
+// MATIKAN BODY PARSER VERCEL
+// Agar file binary bisa dibaca langsung
+// =====================================================
+
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
+
+// =====================================================
+// BACA REQUEST BINARY
+// =====================================================
+
+function readRequestBody(req) {
+
+    return new Promise((resolve, reject) => {
+
+        const chunks = [];
+
+        req.on("data", (chunk) => {
+
+            chunks.push(chunk);
+
+        });
+
+        req.on("end", () => {
+
+            try {
+
+                const buffer =
+                    Buffer.concat(chunks);
+
+                resolve(buffer);
+
+            } catch (error) {
+
+                reject(error);
+
+            }
+
+        });
+
+        req.on("error", (error) => {
+
+            reject(error);
+
+        });
+
+    });
+
+}
+
+
+// =====================================================
+// MAIN HANDLER
+// =====================================================
+
 export default async function handler(req, res) {
 
-    // =====================================================
+    // =================================================
     // CORS
-    // =====================================================
+    // =================================================
 
-    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader(
+        "Access-Control-Allow-Origin",
+        "*"
+    );
 
     res.setHeader(
         "Access-Control-Allow-Methods",
@@ -18,18 +81,20 @@ export default async function handler(req, res) {
     );
 
 
-    // =====================================================
+    // =================================================
     // PREFLIGHT
-    // =====================================================
+    // =================================================
 
     if (req.method === "OPTIONS") {
+
         return res.status(200).end();
+
     }
 
 
-    // =====================================================
+    // =================================================
     // TEST API
-    // =====================================================
+    // =================================================
 
     if (req.method === "GET") {
 
@@ -37,16 +102,17 @@ export default async function handler(req, res) {
 
             success: true,
 
-            message: "API Vercel aktif - Binary Upload"
+            message:
+                "API Vercel aktif - Binary Upload"
 
         });
 
     }
 
 
-    // =====================================================
+    // =================================================
     // HANYA POST
-    // =====================================================
+    // =================================================
 
     if (req.method !== "POST") {
 
@@ -54,7 +120,8 @@ export default async function handler(req, res) {
 
             success: false,
 
-            message: "Method tidak diizinkan"
+            message:
+                "Method tidak diizinkan"
 
         });
 
@@ -64,7 +131,7 @@ export default async function handler(req, res) {
     try {
 
         // =================================================
-        // AMBIL PARAMETER DARI URL
+        // AMBIL PARAMETER URL
         // =================================================
 
         const filename =
@@ -77,19 +144,48 @@ export default async function handler(req, res) {
             req.query.subfolder;
 
 
-        console.log("=================================");
-        console.log("UPLOAD REQUEST");
-        console.log("filename :", filename);
-        console.log("folder   :", folder);
-        console.log("subfolder:", subfolder);
-        console.log("=================================");
+        console.log(
+            "================================="
+        );
+
+        console.log(
+            "UPLOAD REQUEST"
+        );
+
+        console.log(
+            "filename :",
+            filename
+        );
+
+        console.log(
+            "folder   :",
+            folder
+        );
+
+        console.log(
+            "subfolder:",
+            subfolder
+        );
+
+        console.log(
+            "content-type:",
+            req.headers["content-type"]
+        );
+
+        console.log(
+            "================================="
+        );
 
 
         // =================================================
-        // CEK DATA WAJIB
+        // CEK PARAMETER
         // =================================================
 
-        if (!filename || !folder || !subfolder) {
+        if (
+            !filename ||
+            !folder ||
+            !subfolder
+        ) {
 
             return res.status(400).json({
 
@@ -127,7 +223,11 @@ export default async function handler(req, res) {
         ];
 
 
-        if (!allowedFolders.includes(folderLower)) {
+        if (
+            !allowedFolders.includes(
+                folderLower
+            )
+        ) {
 
             return res.status(400).json({
 
@@ -153,14 +253,19 @@ export default async function handler(req, res) {
 
         safeSubfolder =
             safeSubfolder
-                .replace(/[<>:"/\\|?*]/g, "_")
-                .replace(/\.\./g, "_")
-                .replace(/\s+/g, "_");
+                .replace(
+                    /[<>:"/\\|?*]/g,
+                    "_"
+                )
+                .replace(
+                    /\.\./g,
+                    "_"
+                )
+                .replace(
+                    /\s+/g,
+                    "_"
+                );
 
-
-        // =================================================
-        // CEK SUBFOLDER
-        // =================================================
 
         if (!safeSubfolder) {
 
@@ -188,13 +293,15 @@ export default async function handler(req, res) {
 
         safeFilename =
             safeFilename
-                .replace(/[<>:"/\\|?*]/g, "_")
-                .replace(/\.\./g, "_");
+                .replace(
+                    /[<>:"/\\|?*]/g,
+                    "_"
+                )
+                .replace(
+                    /\.\./g,
+                    "_"
+                );
 
-
-        // =================================================
-        // CEK NAMA FILE
-        // =================================================
 
         if (!safeFilename) {
 
@@ -224,14 +331,19 @@ export default async function handler(req, res) {
             process.env.GITHUB_REPO;
 
         const branch =
-            process.env.GITHUB_BRANCH || "main";
+            process.env.GITHUB_BRANCH ||
+            "main";
 
 
         // =================================================
         // CEK ENVIRONMENT
         // =================================================
 
-        if (!token || !owner || !repo) {
+        if (
+            !token ||
+            !owner ||
+            !repo
+        ) {
 
             return res.status(500).json({
 
@@ -247,11 +359,6 @@ export default async function handler(req, res) {
 
         // =================================================
         // PATH GITHUB
-        //
-        // CONTOH:
-        //
-        // converter/scn/manual.pdf
-        //
         // =================================================
 
         const path =
@@ -265,32 +372,29 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // URL GITHUB API
+        // URL GITHUB
         // =================================================
 
         const githubUrl =
             `https://api.github.com/repos/${owner}/${repo}/contents/${path
                 .split("/")
-                .map(encodeURIComponent)
+                .map(
+                    encodeURIComponent
+                )
                 .join("/")}`;
-
-
-        console.log(
-            "GITHUB URL:",
-            githubUrl
-        );
 
 
         // =================================================
         // BACA FILE BINARY
         // =================================================
 
-        const arrayBuffer =
-            await req.arrayBuffer();
+        console.log(
+            "Membaca binary file..."
+        );
 
 
         const buffer =
-            Buffer.from(arrayBuffer);
+            await readRequestBody(req);
 
 
         console.log(
@@ -304,14 +408,17 @@ export default async function handler(req, res) {
         // CEK FILE KOSONG
         // =================================================
 
-        if (buffer.length === 0) {
+        if (
+            !buffer ||
+            buffer.length === 0
+        ) {
 
             return res.status(400).json({
 
                 success: false,
 
                 message:
-                    "File kosong atau tidak diterima server"
+                    "File kosong atau binary tidak diterima"
 
             });
 
@@ -319,26 +426,23 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // BATAS GITHUB
-        //
-        // GitHub Contents API tidak cocok untuk file
-        // yang sangat besar.
-        //
-        // Kita beri batas aman 95 MB.
+        // BATAS INTERNAL
         // =================================================
 
         const maxSize =
             95 * 1024 * 1024;
 
 
-        if (buffer.length > maxSize) {
+        if (
+            buffer.length > maxSize
+        ) {
 
             return res.status(413).json({
 
                 success: false,
 
                 message:
-                    "Ukuran file terlalu besar. Maksimal sekitar 95 MB."
+                    "File terlalu besar. Maksimal sekitar 95 MB."
 
             });
 
@@ -346,10 +450,9 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // UBAH BINARY -> BASE64
+        // BINARY -> BASE64
         //
-        // Hanya dilakukan di SERVER.
-        // Browser tidak lagi melakukan Base64.
+        // Dilakukan di SERVER
         // =================================================
 
         const content =
@@ -357,10 +460,10 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // CEK FILE SUDAH ADA
+        // CEK FILE LAMA
         // =================================================
 
-        let sha = undefined;
+        let sha;
 
 
         const checkResponse =
@@ -388,13 +491,16 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // AMBIL SHA
+        // AMBIL SHA JIKA FILE SUDAH ADA
         // =================================================
 
-        if (checkResponse.ok) {
+        if (
+            checkResponse.ok
+        ) {
 
             const existingFile =
                 await checkResponse.json();
+
 
             sha =
                 existingFile.sha;
@@ -403,7 +509,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // DATA UNTUK GITHUB
+        // DATA GITHUB
         // =================================================
 
         const githubData = {
@@ -421,7 +527,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // FILE SUDAH ADA
+        // JIKA FILE SUDAH ADA
         // =================================================
 
         if (sha) {
@@ -465,14 +571,16 @@ export default async function handler(req, res) {
                     },
 
                     body:
-                        JSON.stringify(githubData)
+                        JSON.stringify(
+                            githubData
+                        )
 
                 }
             );
 
 
         // =================================================
-        // BACA RESPONSE GITHUB
+        // RESPONSE GITHUB
         // =================================================
 
         const result =
@@ -483,16 +591,20 @@ export default async function handler(req, res) {
         // GITHUB ERROR
         // =================================================
 
-        if (!uploadResponse.ok) {
+        if (
+            !uploadResponse.ok
+        ) {
 
             console.error(
-                "GitHub error:",
+                "GitHub ERROR:",
                 result
             );
 
 
             return res
-                .status(uploadResponse.status)
+                .status(
+                    uploadResponse.status
+                )
                 .json({
 
                     success: false,
@@ -509,7 +621,7 @@ export default async function handler(req, res) {
 
 
         // =================================================
-        // BERHASIL
+        // SUKSES
         // =================================================
 
         console.log(
@@ -541,7 +653,8 @@ export default async function handler(req, res) {
                 buffer.length,
 
             url:
-                result.content?.html_url || null
+                result.content?.html_url ||
+                null
 
         });
 
@@ -549,7 +662,7 @@ export default async function handler(req, res) {
     } catch (error) {
 
         // =================================================
-        // ERROR SERVER
+        // ERROR
         // =================================================
 
         console.error(
@@ -563,7 +676,8 @@ export default async function handler(req, res) {
             success: false,
 
             message:
-                error.message || "Terjadi kesalahan server"
+                error.message ||
+                "Terjadi kesalahan server"
 
         });
 
