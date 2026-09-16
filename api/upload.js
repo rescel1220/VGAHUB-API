@@ -3,113 +3,63 @@
 // MATIKAN BODY PARSER VERCEL
 // Agar file binary bisa dibaca langsung
 // =====================================================
-
 export const config = {
     api: {
         bodyParser: false,
     },
 };
 
-
 // =====================================================
 // BACA REQUEST BINARY
 // =====================================================
-
 function readRequestBody(req) {
-
     return new Promise((resolve, reject) => {
-
         const chunks = [];
-
         req.on("data", (chunk) => {
-
             chunks.push(chunk);
 
         });
 
         req.on("end", () => {
-
             try {
-
-                const buffer =
-                    Buffer.concat(chunks);
-
+                const buffer =Buffer.concat(chunks);
                 resolve(buffer);
-
             } catch (error) {
-
                 reject(error);
-
             }
-
         });
-
         req.on("error", (error) => {
-
             reject(error);
-
         });
-
     });
-
 }
-
 
 // =====================================================
 // MAIN HANDLER
 // =====================================================
 
 export default async function handler(req, res) {
-
     // =================================================
     // CORS
     // =================================================
-
-    res.setHeader(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET, POST, OPTIONS"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
-
-
+    res.setHeader( "Access-Control-Allow-Origin", "*");
+    res.setHeader( "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader( "Access-Control-Allow-Headers", "Content-Type");
     // =================================================
     // PREFLIGHT
     // =================================================
-
     if (req.method === "OPTIONS") {
-
         return res.status(200).end();
-
     }
-
-
     // =================================================
     // TEST API
     // =================================================
-
     if (req.method === "GET") {
-
         return res.status(200).json({
-
             success: true,
-
-            message:
-                "API Vercel aktif - Binary Upload"
-
+            message:"API Vercel aktif - Binary Upload"
         });
-
     }
-
-
     // =================================================
     // HANYA POST
     // =================================================
