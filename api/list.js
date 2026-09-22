@@ -1,101 +1,52 @@
 
 export default async function handler(req, res) {
-
     // =====================================================
     // CORS
     // =====================================================
-
-    res.setHeader(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Methods",
-        "GET, OPTIONS"
-    );
-
-    res.setHeader(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
-
-
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
     // =====================================================
     // PREFLIGHT
     // =====================================================
-
     if (req.method === "OPTIONS") {
-
         return res.status(200).end();
-
     }
-
-
     // =====================================================
     // HANYA GET
     // =====================================================
-
     if (req.method !== "GET") {
-
         return res.status(405).json({
-
             success: false,
-
-            message:
-                "Method tidak diizinkan"
-
+            message:"Method tidak diizinkan"
         });
-
     }
-
-
     try {
-
         // =================================================
         // AMBIL PARAMETER
         // =================================================
-
-        const folder =
-            req.query.folder;
-
-        const subfolder =
-            req.query.subfolder;
-
-
+        const folder =req.query.folder;
+        const subfolder =req.query.subfolder;
         // =================================================
         // CEK FOLDER UTAMA
         // =================================================
-
         if (!folder) {
-
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Parameter folder belum diberikan"
-
+                message:"Parameter folder belum diberikan"
             });
-
         }
-
-
         // =================================================
         // NORMALISASI FOLDER
         // =================================================
-
         const folderLower =
             folder
                 .toString()
                 .trim()
                 .toLowerCase();
-
-
         // =================================================
         // FOLDER YANG DIIZINKAN
         // =================================================
-
         const allowedFolders = [
 
             "hmi",
@@ -105,72 +56,35 @@ export default async function handler(req, res) {
         ];
 
 
-        if (
-            !allowedFolders.includes(
-                folderLower
-            )
-        ) {
-
+        if (!allowedFolders.includes(folderLower)) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Folder tidak diizinkan"
-
+                message:"Folder tidak diizinkan"
             });
-
         }
-
-
         // =================================================
         // ENVIRONMENT VARIABLES
         // =================================================
-
-        const token =
-            process.env.GITHUB_TOKEN;
-
-        const owner =
-            process.env.GITHUB_OWNER;
-
-        const repo =
-            process.env.GITHUB_REPO;
-
-        const branch =
-            process.env.GITHUB_BRANCH ||
-            "main";
-
-
+        const token =process.env.GITHUB_TOKEN;
+        const owner =process.env.GITHUB_OWNER;
+        const repo =process.env.GITHUB_REPO;
+        const branch =process.env.GITHUB_BRANCH || "main";
         // =================================================
         // CEK ENVIRONMENT
         // =================================================
-
         if (!token || !owner || !repo) {
-
             return res.status(500).json({
-
                 success: false,
-
-                message:
-                    "Environment Variables belum lengkap"
-
+                message:"Environment Variables belum lengkap"
             });
-
         }
-
-
         // =================================================
         // TENTUKAN PATH GITHUB
         // =================================================
-
-        let githubPath =
-            folderLower;
-
-
+        let githubPath =folderLower;
         // =================================================
         // JIKA ADA SUBFOLDER
         // =================================================
-
         if (subfolder) {
 
             let safeSubfolder =
