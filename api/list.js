@@ -1,14 +1,10 @@
 
 export default async function handler(req, res) {
-    // =====================================================
-    // CORS
-    // =====================================================
+// =====================================================CORS=====================================================
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    // =====================================================
-    // PREFLIGHT
-    // =====================================================
+// =====================================================PREFLIGHT=====================================================
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
@@ -22,9 +18,8 @@ export default async function handler(req, res) {
         });
     }
     try {
-        // =================================================
-        // AMBIL PARAMETER
-        // =================================================
+// =================================================AMBIL PARAMETER=================================================
+    
         const folder =req.query.folder;
         const subfolder =req.query.subfolder;
         // =================================================
@@ -96,25 +91,13 @@ export default async function handler(req, res) {
 
 
             if (!safeSubfolder) {
-
                 return res.status(400).json({
-
                     success: false,
-
-                    message:
-                        "Nama subfolder tidak valid"
-
+                    message:"Nama subfolder tidak valid"
                 });
-
             }
-
-
-            githubPath =
-                `${folderLower}/${safeSubfolder}`;
-
+            githubPath = `${folderLower}/${safeSubfolder}`;
         }
-
-
         // =================================================
         // URL GITHUB
         // =================================================
@@ -125,19 +108,8 @@ export default async function handler(req, res) {
                 .map(encodeURIComponent)
                 .join("/")}?ref=${encodeURIComponent(branch)}`;
 
-
-        console.log(
-            "LIST PATH:",
-            githubPath
-        );
-
-
-        console.log(
-            "LIST URL:",
-            githubUrl
-        );
-
-
+        console.log("LIST PATH:", githubPath);
+        console.log("LIST URL:", githubUrl);
         // =================================================
         // REQUEST GITHUB
         // =================================================
@@ -146,77 +118,36 @@ export default async function handler(req, res) {
             await fetch(
                 githubUrl,
                 {
-
                     method: "GET",
-
                     headers: {
-
-                        "Authorization":
-                            `Bearer ${token}`,
-
-                        "Accept":
-                            "application/vnd.github+json",
-
-                        "X-GitHub-Api-Version":
-                            "2022-11-28"
-
+                        "Authorization":`Bearer ${token}`,
+                        "Accept":"application/vnd.github+json",
+                        "X-GitHub-Api-Version":"2022-11-28"
                     }
-
                 }
             );
-
-
         // =================================================
         // ERROR GITHUB
         // =================================================
-
         if (!githubResponse.ok) {
-
-            const error =
-                await githubResponse.json();
-
-
-            console.error(
-                "GitHub error:",
-                error
-            );
-
+            const error =await githubResponse.json();
+            console.error("GitHub error:", error);
 
             return res
                 .status(githubResponse.status)
                 .json({
 
                     success: false,
-
-                    message:
-                        "Gagal membaca folder GitHub",
-
-                    github:
-                        error
-
+                    message:"Gagal membaca folder GitHub",
+                    github:error
                 });
-
         }
-
-
         // =================================================
         // DATA GITHUB
         // =================================================
-
-        const items =
-            await githubResponse.json();
-
-
-        // =================================================
-        // JIKA YANG DIMINTA:
-        //
-        // /converter
-        //
-        // MAKA AMBIL SUBFOLDER
-        // =================================================
-
+        const items =await githubResponse.json();
+        //AMBIL SUBFOLDER
         if (!subfolder) {
-
             const folders =
                 items
                     .filter(
@@ -225,43 +156,19 @@ export default async function handler(req, res) {
                     )
                     .map(
                         item => ({
-
-                            name:
-                                item.name,
-
-                            path:
-                                item.path
-
+                            name: item.name,
+                            path: item.path
                         })
                     );
 
-
             return res.status(200).json({
-
                 success: true,
-
-                folder:
-                    folderLower,
-
-                count:
-                    folders.length,
-
-                folders:
-                    folders
-
+                folder: folderLower,
+                count: folders.length,
+                folders: folders
             });
-
         }
-
-
-        // =================================================
-        // JIKA YANG DIMINTA:
-        //
-        // /converter/NAMA_FOLDER
-        //
-        // MAKA AMBIL FILE
-        // =================================================
-
+//=====================================AMBIL FILE===================================
         const files =
             items
                 .filter(
@@ -270,67 +177,36 @@ export default async function handler(req, res) {
                 )
                 .map(
                     item => ({
-
-                        name:
-                            item.name,
-
-                        path:
-                            item.path,
-
-                        download_url:
-                            item.download_url,
-
-                        html_url:
-                            item.html_url,
-
-                        size:
-                            item.size
-
+                        name: item.name,
+                        path: item.path,
+                        download_url: item.download_url,
+                        html_url: item.html_url,
+                        size: item.size
                     })
                 );
-
-
         // =================================================
         // HASIL FILE
         // =================================================
 
         return res.status(200).json({
-
             success: true,
-
-            folder:
-                folderLower,
-
-            subfolder:
-                subfolder,
-
-            count:
-                files.length,
-
-            files:
-                files
-
+            folder: folderLower,
+            subfolder: subfolder,
+            count: files.length,
+            files: files
         });
-
-
     } catch (error) {
 
         console.error(
-            "LIST ERROR:",
+ "LIST ERROR:",
             error
         );
 
 
         return res.status(500).json({
-
             success: false,
-
-            message:
-                error.message
-
+            message: error.message
         });
-
     }
-
 }
 
