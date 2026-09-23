@@ -65,142 +65,70 @@ export default async function handler(req, res) {
     // =================================================
 
     if (req.method !== "POST") {
-
         return res.status(405).json({
-
             success: false,
-
-            message:
-                "Method tidak diizinkan"
-
+            message: "Method tidak diizinkan"
         });
-
     }
-
-
     try {
-
         // =================================================
         // AMBIL PARAMETER URL
         // =================================================
+        const filename = req.query.filename;
+        const folder = req.query.folder;
+        const subfolder = req.query.subfolder;
+        console.log("=================================");
+        console.log("UPLOAD REQUEST");
+        console.log("filename :",filename);
 
-        const filename =
-            req.query.filename;
-
-        const folder =
-            req.query.folder;
-
-        const subfolder =
-            req.query.subfolder;
-
-
-        console.log(
-            "================================="
-        );
-
-        console.log(
-            "UPLOAD REQUEST"
-        );
-
-        console.log(
-            "filename :",
-            filename
-        );
-
-        console.log(
-            "folder   :",
-            folder
-        );
-
-        console.log(
-            "subfolder:",
-            subfolder
-        );
-
-        console.log(
-            "content-type:",
-            req.headers["content-type"]
-        );
-
-        console.log(
-            "================================="
-        );
-
-
+        console.log("folder   :", folder);
+        console.log("subfolder:", subfolder);
+        console.log("content-type:", req.headers["content-type"]);
+        console.log("=================================");
         // =================================================
         // CEK PARAMETER
         // =================================================
-
-        if (
-            !filename ||
-            !folder ||
-            !subfolder
-        ) {
-
+        if (!filename || !folder || !subfolder) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "filename, folder, atau subfolder kosong"
-
+                message:"filename, folder, atau subfolder kosong"
             });
-
         }
 
 
         // =================================================
         // NORMALISASI FOLDER
         // =================================================
-
         const folderLower =
             folder
                 .toString()
                 .trim()
                 .toLowerCase();
-
-
         // =================================================
         // FOLDER YANG DIIZINKAN
         // =================================================
 
         const allowedFolders = [
-
             "hmi",
             "converter",
             "mcu"
-
         ];
 
 
-        if (
-            !allowedFolders.includes(
-                folderLower
-            )
-        ) {
-
+        if (!allowedFolders.includes(folderLower)) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Folder tidak diizinkan. Gunakan hmi, converter, atau mcu."
-
+                message:"Folder tidak diizinkan. Gunakan hmi, converter, atau mcu."
             });
-
         }
-
-
         // =================================================
         // AMANKAN SUBFOLDER
         // =================================================
-
         let safeSubfolder =
             subfolder
                 .toString()
                 .trim();
-
-
+        
         safeSubfolder =
             safeSubfolder
                 .replace(
@@ -218,16 +146,10 @@ export default async function handler(req, res) {
 
 
         if (!safeSubfolder) {
-
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Nama subfolder tidak valid"
-
+                message: "Nama subfolder tidak valid"
             });
-
         }
 
 
@@ -240,9 +162,7 @@ export default async function handler(req, res) {
                 .toString()
                 .trim();
 
-
-        safeFilename =
-            safeFilename
+        safeFilename = safeFilename
                 .replace(
                     /[<>:"/\\|?*]/g,
                     "_"
@@ -254,73 +174,36 @@ export default async function handler(req, res) {
 
 
         if (!safeFilename) {
-
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Nama file tidak valid"
-
+                message: "Nama file tidak valid"
             });
-
         }
 
 
         // =================================================
         // ENVIRONMENT VARIABLES
         // =================================================
-
-        const token =
-            process.env.GITHUB_TOKEN;
-
-        const owner =
-            process.env.GITHUB_OWNER;
-
-        const repo =
-            process.env.GITHUB_REPO;
-
-        const branch =
-            process.env.GITHUB_BRANCH ||
-            "main";
-
-
+        const token = process.env.GITHUB_TOKEN;
+        const owner = process.env.GITHUB_OWNER;
+        const repo = process.env.GITHUB_REPO;
+        const branch = process.env.GITHUB_BRANCH || "main";
         // =================================================
         // CEK ENVIRONMENT
         // =================================================
 
-        if (
-            !token ||
-            !owner ||
-            !repo
-        ) {
-
+        if (!token ||  !owner || !repo ) {
             return res.status(500).json({
-
                 success: false,
-
-                message:
-                    "Environment Variables belum lengkap"
-
+                message: "Environment Variables belum lengkap"
             });
-
         }
-
-
         // =================================================
         // PATH GITHUB
         // =================================================
 
-        const path =
-            `${folderLower}/${safeSubfolder}/${safeFilename}`;
-
-
-        console.log(
-            "UPLOAD PATH:",
-            path
-        );
-
-
+        const path = `${folderLower}/${safeSubfolder}/${safeFilename}`;
+        console.log("UPLOAD PATH:", path);
         // =================================================
         // URL GITHUB
         // =================================================
@@ -338,40 +221,17 @@ export default async function handler(req, res) {
         // BACA FILE BINARY
         // =================================================
 
-        console.log(
-            "Membaca binary file..."
-        );
-
-
-        const buffer =
-            await readRequestBody(req);
-
-
-        console.log(
-            "FILE SIZE:",
-            buffer.length,
-            "bytes"
-        );
-
-
+        console.log("Membaca binary file...");
+        const buffer =await readRequestBody(req);
+        console.log("FILE SIZE:", buffer.length, "bytes");
         // =================================================
         // CEK FILE KOSONG
         // =================================================
-
-        if (
-            !buffer ||
-            buffer.length === 0
-        ) {
-
+        if (!buffer || buffer.length === 0) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "File kosong atau binary tidak diterima"
-
+                message:"File kosong atau binary tidak diterima"
             });
-
         }
 
 
@@ -379,23 +239,12 @@ export default async function handler(req, res) {
         // BATAS INTERNAL
         // =================================================
 
-        const maxSize =
-            95 * 1024 * 1024;
-
-
-        if (
-            buffer.length > maxSize
-        ) {
-
+        const maxSize =95 * 1024 * 1024;
+        if (buffer.length > maxSize) {
             return res.status(413).json({
-
                 success: false,
-
-                message:
-                    "File terlalu besar. Maksimal sekitar 95 MB."
-
+                message:"File terlalu besar. Maksimal sekitar 95 MB."
             });
-
         }
 
 
@@ -404,11 +253,7 @@ export default async function handler(req, res) {
         //
         // Dilakukan di SERVER
         // =================================================
-
-        const content =
-            buffer.toString("base64");
-
-
+        const content =buffer.toString("base64");
         // =================================================
         // CEK FILE LAMA
         // =================================================
@@ -425,17 +270,10 @@ export default async function handler(req, res) {
 
                     headers: {
 
-                        "Authorization":
-                            `Bearer ${token}`,
-
-                        "Accept":
-                            "application/vnd.github+json",
-
-                        "X-GitHub-Api-Version":
-                            "2022-11-28"
-
+                        "Authorization": `Bearer ${token}`,
+                        "Accept": "application/vnd.github+json",
+                        "X-GitHub-Api-Version": "2022-11-28"
                     }
-
                 }
             );
 
@@ -444,35 +282,17 @@ export default async function handler(req, res) {
         // AMBIL SHA JIKA FILE SUDAH ADA
         // =================================================
 
-        if (
-            checkResponse.ok
-        ) {
-
-            const existingFile =
-                await checkResponse.json();
-
-
-            sha =
-                existingFile.sha;
-
+        if (checkResponse.ok) {
+            const existingFile = await checkResponse.json();
+            sha = existingFile.sha;
         }
-
-
         // =================================================
         // DATA GITHUB
         // =================================================
-
         const githubData = {
-
-            message:
-                `Upload ${folderLower}/${safeSubfolder}: ${safeFilename}`,
-
-            content:
-                content,
-
-            branch:
-                branch
-
+            message: `Upload ${folderLower}/${safeSubfolder}: ${safeFilename}`,
+            content: content,
+            branch: branch
         };
 
 
@@ -481,10 +301,7 @@ export default async function handler(req, res) {
         // =================================================
 
         if (sha) {
-
-            githubData.sha =
-                sha;
-
+            githubData.sha = sha;
         }
 
 
@@ -492,9 +309,7 @@ export default async function handler(req, res) {
         // UPLOAD KE GITHUB
         // =================================================
 
-        console.log(
-            "Mengirim file ke GitHub..."
-        );
+        console.log("Mengirim file ke GitHub...");
 
 
         const uploadResponse =
@@ -533,22 +348,16 @@ export default async function handler(req, res) {
         // RESPONSE GITHUB
         // =================================================
 
-        const result =
-            await uploadResponse.json();
+        const result = await uploadResponse.json();
 
 
         // =================================================
         // GITHUB ERROR
         // =================================================
 
-        if (
-            !uploadResponse.ok
-        ) {
+        if (!uploadResponse.ok) {
 
-            console.error(
-                "GitHub ERROR:",
-                result
-            );
+            console.error("GitHub ERROR:", result);
 
 
             return res
