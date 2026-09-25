@@ -19,7 +19,6 @@ export default async function handler(req, res) {
     }
     try {
 // =================================================AMBIL PARAMETER=================================================
-    
         const folder =req.query.folder;
         const subfolder =req.query.subfolder;
         // =================================================
@@ -43,14 +42,10 @@ export default async function handler(req, res) {
         // FOLDER YANG DIIZINKAN
         // =================================================
         const allowedFolders = [
-
             "hmi",
             "converter",
             "mcu"
-
         ];
-
-
         if (!allowedFolders.includes(folderLower)) {
             return res.status(400).json({
                 success: false,
@@ -81,15 +76,12 @@ export default async function handler(req, res) {
         // JIKA ADA SUBFOLDER
         // =================================================
         if (subfolder) {
-
             let safeSubfolder =
                 subfolder
                     .toString()
                     .trim()
                     .replace(/[<>:"/\\|?*]/g, "_")
                     .replace(/\.\./g, "_");
-
-
             if (!safeSubfolder) {
                 return res.status(400).json({
                     success: false,
@@ -107,7 +99,6 @@ export default async function handler(req, res) {
                 .split("/")
                 .map(encodeURIComponent)
                 .join("/")}?ref=${encodeURIComponent(branch)}`;
-
         console.log("LIST PATH:", githubPath);
         console.log("LIST URL:", githubUrl);
         // =================================================
@@ -132,11 +123,9 @@ export default async function handler(req, res) {
         if (!githubResponse.ok) {
             const error =await githubResponse.json();
             console.error("GitHub error:", error);
-
             return res
                 .status(githubResponse.status)
                 .json({
-
                     success: false,
                     message:"Gagal membaca folder GitHub",
                     github:error
@@ -187,7 +176,6 @@ export default async function handler(req, res) {
         // =================================================
         // HASIL FILE
         // =================================================
-
         return res.status(200).json({
             success: true,
             folder: folderLower,
@@ -196,17 +184,10 @@ export default async function handler(req, res) {
             files: files
         });
     } catch (error) {
-
-        console.error(
- "LIST ERROR:",
-            error
-        );
-
-
+        console.error("LIST ERROR:", error);
         return res.status(500).json({
             success: false,
             message: error.message
         });
     }
 }
-
