@@ -80,7 +80,6 @@ export default async function handler(req, res) {
         console.log("=================================");
         console.log("UPLOAD REQUEST");
         console.log("filename :",filename);
-
         console.log("folder   :", folder);
         console.log("subfolder:", subfolder);
         console.log("content-type:", req.headers["content-type"]);
@@ -94,8 +93,6 @@ export default async function handler(req, res) {
                 message:"filename, folder, atau subfolder kosong"
             });
         }
-
-
         // =================================================
         // NORMALISASI FOLDER
         // =================================================
@@ -107,13 +104,11 @@ export default async function handler(req, res) {
         // =================================================
         // FOLDER YANG DIIZINKAN
         // =================================================
-
         const allowedFolders = [
             "hmi",
             "converter",
             "mcu"
         ];
-
 
         if (!allowedFolders.includes(folderLower)) {
             return res.status(400).json({
@@ -129,21 +124,10 @@ export default async function handler(req, res) {
                 .toString()
                 .trim();
         
-        safeSubfolder =
-            safeSubfolder
-                .replace(
-                    /[<>:"/\\|?*]/g,
-                    "_"
-                )
-                .replace(
-                    /\.\./g,
-                    "_"
-                )
-                .replace(
-                    /\s+/g,
-                    "_"
-                );
-
+        safeSubfolder = safeSubfolder
+                .replace(/[<>:"/\\|?*]/g, "_")
+                .replace(/\.\./g, "_")
+                .replace(/\s+/g, "_");
 
         if (!safeSubfolder) {
             return res.status(400).json({
@@ -151,27 +135,15 @@ export default async function handler(req, res) {
                 message: "Nama subfolder tidak valid"
             });
         }
-
-
         // =================================================
         // AMANKAN NAMA FILE
         // =================================================
-
-        let safeFilename =
-            filename
+        let safeFilename =filename
                 .toString()
                 .trim();
-
         safeFilename = safeFilename
-                .replace(
-                    /[<>:"/\\|?*]/g,
-                    "_"
-                )
-                .replace(
-                    /\.\./g,
-                    "_"
-                );
-
+                .replace(/[<>:"/\\|?*]/g, "_")
+                .replace(/\.\./g, "_");
 
         if (!safeFilename) {
             return res.status(400).json({
@@ -179,8 +151,6 @@ export default async function handler(req, res) {
                 message: "Nama file tidak valid"
             });
         }
-
-
         // =================================================
         // ENVIRONMENT VARIABLES
         // =================================================
@@ -191,7 +161,6 @@ export default async function handler(req, res) {
         // =================================================
         // CEK ENVIRONMENT
         // =================================================
-
         if (!token ||  !owner || !repo ) {
             return res.status(500).json({
                 success: false,
@@ -201,26 +170,18 @@ export default async function handler(req, res) {
         // =================================================
         // PATH GITHUB
         // =================================================
-
         const path = `${folderLower}/${safeSubfolder}/${safeFilename}`;
         console.log("UPLOAD PATH:", path);
         // =================================================
         // URL GITHUB
         // =================================================
-
-        const githubUrl =
-            `https://api.github.com/repos/${owner}/${repo}/contents/${path
+        const githubUrl =`https://api.github.com/repos/${owner}/${repo}/contents/${path
                 .split("/")
-                .map(
-                    encodeURIComponent
-                )
+                .map(encodeURIComponent)
                 .join("/")}`;
-
-
         // =================================================
         // BACA FILE BINARY
         // =================================================
-
         console.log("Membaca binary file...");
         const buffer =await readRequestBody(req);
         console.log("FILE SIZE:", buffer.length, "bytes");
@@ -233,12 +194,9 @@ export default async function handler(req, res) {
                 message:"File kosong atau binary tidak diterima"
             });
         }
-
-
         // =================================================
         // BATAS INTERNAL
         // =================================================
-
         const maxSize =95 * 1024 * 1024;
         if (buffer.length > maxSize) {
             return res.status(413).json({
@@ -246,8 +204,6 @@ export default async function handler(req, res) {
                 message:"File terlalu besar. Maksimal sekitar 95 MB."
             });
         }
-
-
         // =================================================
         // BINARY -> BASE64
         //
@@ -257,31 +213,22 @@ export default async function handler(req, res) {
         // =================================================
         // CEK FILE LAMA
         // =================================================
-
         let sha;
-
-
         const checkResponse =
             await fetch(
                 githubUrl,
                 {
-
                     method: "GET",
-
                     headers: {
-
                         "Authorization": `Bearer ${token}`,
                         "Accept": "application/vnd.github+json",
                         "X-GitHub-Api-Version": "2022-11-28"
                     }
                 }
             );
-
-
         // =================================================
         // AMBIL SHA JIKA FILE SUDAH ADA
         // =================================================
-
         if (checkResponse.ok) {
             const existingFile = await checkResponse.json();
             sha = existingFile.sha;
@@ -294,153 +241,71 @@ export default async function handler(req, res) {
             content: content,
             branch: branch
         };
-
-
         // =================================================
         // JIKA FILE SUDAH ADA
         // =================================================
-
         if (sha) {
             githubData.sha = sha;
         }
-
-
         // =================================================
         // UPLOAD KE GITHUB
         // =================================================
-
         console.log("Mengirim file ke GitHub...");
-
-
         const uploadResponse =
             await fetch(
                 githubUrl,
                 {
-
                     method: "PUT",
-
                     headers: {
-
-                        "Authorization":
-                            `Bearer ${token}`,
-
-                        "Accept":
-                            "application/vnd.github+json",
-
-                        "Content-Type":
-                            "application/json",
-
-                        "X-GitHub-Api-Version":
-                            "2022-11-28"
-
+                        "Authorization": `Bearer ${token}`,
+                        "Accept":"application/vnd.github+json",
+                        "Content-Type":"application/json",
+                        "X-GitHub-Api-Version":"2022-11-28"
                     },
-
                     body:
-                        JSON.stringify(
-                            githubData
-                        )
-
+                        JSON.stringify(githubData)
                 }
             );
-
-
         // =================================================
         // RESPONSE GITHUB
         // =================================================
-
         const result = await uploadResponse.json();
-
-
         // =================================================
         // GITHUB ERROR
         // =================================================
-
         if (!uploadResponse.ok) {
-
             console.error("GitHub ERROR:", result);
-
-
             return res
-                .status(
-                    uploadResponse.status
-                )
+                .status(uploadResponse.status)
                 .json({
-
                     success: false,
-
-                    message:
-                        "Gagal menyimpan file ke GitHub",
-
-                    github:
-                        result
-
+                    message:"Gagal menyimpan file ke GitHub",
+                    github:result
                 });
-
         }
-
-
         // =================================================
         // SUKSES
         // =================================================
-
-        console.log(
-            "UPLOAD BERHASIL:",
-            path
-        );
-
-
+        console.log("UPLOAD BERHASIL:", path);
         return res.status(200).json({
-
             success: true,
-
-            message:
-                "File berhasil disimpan ke GitHub",
-
-            filename:
-                safeFilename,
-
-            folder:
-                folderLower,
-
-            subfolder:
-                safeSubfolder,
-
-            path:
-                path,
-
-            size:
-                buffer.length,
-
-            url:
-                result.content?.html_url ||
-                null
+            message:"File berhasil disimpan ke GitHub",
+            filename: safeFilename,
+            folder: folderLower,
+            subfolder: safeSubfolder,
+            path: path,
+            size: buffer.length,
+            url: result.content?.html_url || null
 
         });
-
-
     } catch (error) {
-
         // =================================================
         // ERROR
         // =================================================
-
-        console.error(
-            "UPLOAD ERROR:",
-            error
-        );
-
-
+        console.error("UPLOAD ERROR:", error);
         return res.status(500).json({
-
             success: false,
-
-            message:
-                error.message ||
-                "Terjadi kesalahan server"
-
+            message: error.message || "Terjadi kesalahan server"
         });
-
     }
-
 }
-
