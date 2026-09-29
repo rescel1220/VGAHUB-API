@@ -8,9 +8,7 @@ export default async function handler(req, res) {
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
-    // =====================================================
-    // HANYA GET
-    // =====================================================
+ // =====================================================// HANYA GET// =====================================================
     if (req.method !== "GET") {
         return res.status(405).json({
             success: false,
@@ -21,26 +19,20 @@ export default async function handler(req, res) {
 // =================================================AMBIL PARAMETER=================================================
         const folder =req.query.folder;
         const subfolder =req.query.subfolder;
-        // =================================================
-        // CEK FOLDER UTAMA
-        // =================================================
+// =================================================// CEK FOLDER UTAMA// =================================================
         if (!folder) {
             return res.status(400).json({
                 success: false,
                 message:"Parameter folder belum diberikan"
             });
         }
-        // =================================================
-        // NORMALISASI FOLDER
-        // =================================================
+// =================================================// NORMALISASI FOLDER// =================================================
         const folderLower =
             folder
                 .toString()
                 .trim()
                 .toLowerCase();
-        // =================================================
-        // FOLDER YANG DIIZINKAN
-        // =================================================
+// =================================================// FOLDER YANG DIIZINKAN// =================================================
         const allowedFolders = [
             "hmi",
             "converter",
@@ -52,29 +44,21 @@ export default async function handler(req, res) {
                 message:"Folder tidak diizinkan"
             });
         }
-        // =================================================
-        // ENVIRONMENT VARIABLES
-        // =================================================
+// =================================================// ENVIRONMENT VARIABLES// =================================================
         const token =process.env.GITHUB_TOKEN;
         const owner =process.env.GITHUB_OWNER;
         const repo =process.env.GITHUB_REPO;
         const branch =process.env.GITHUB_BRANCH || "main";
-        // =================================================
-        // CEK ENVIRONMENT
-        // =================================================
+// =================================================// CEK ENVIRONMENT// =================================================
         if (!token || !owner || !repo) {
             return res.status(500).json({
                 success: false,
                 message:"Environment Variables belum lengkap"
             });
         }
-        // =================================================
-        // TENTUKAN PATH GITHUB
-        // =================================================
+// =================================================// TENTUKAN PATH GITHUB// =================================================
         let githubPath =folderLower;
-        // =================================================
-        // JIKA ADA SUBFOLDER
-        // =================================================
+// =================================================// JIKA ADA SUBFOLDER// =================================================
         if (subfolder) {
             let safeSubfolder =
                 subfolder
@@ -90,21 +74,15 @@ export default async function handler(req, res) {
             }
             githubPath = `${folderLower}/${safeSubfolder}`;
         }
-        // =================================================
-        // URL GITHUB
-        // =================================================
+// =================================================// URL GITHUB// =================================================
 
-        const githubUrl =
-            `https://api.github.com/repos/${owner}/${repo}/contents/${githubPath
+        const githubUrl =`https://api.github.com/repos/${owner}/${repo}/contents/${githubPath
                 .split("/")
                 .map(encodeURIComponent)
                 .join("/")}?ref=${encodeURIComponent(branch)}`;
         console.log("LIST PATH:", githubPath);
         console.log("LIST URL:", githubUrl);
-        // =================================================
-        // REQUEST GITHUB
-        // =================================================
-
+// =================================================// REQUEST GITHUB// =================================================
         const githubResponse =
             await fetch(
                 githubUrl,
@@ -117,9 +95,7 @@ export default async function handler(req, res) {
                     }
                 }
             );
-        // =================================================
-        // ERROR GITHUB
-        // =================================================
+// =================================================// ERROR GITHUB// =================================================
         if (!githubResponse.ok) {
             const error =await githubResponse.json();
             console.error("GitHub error:", error);
@@ -131,9 +107,7 @@ export default async function handler(req, res) {
                     github:error
                 });
         }
-        // =================================================
-        // DATA GITHUB
-        // =================================================
+// =================================================// DATA GITHUB// =================================================
         const items =await githubResponse.json();
         //AMBIL SUBFOLDER
         if (!subfolder) {
@@ -173,9 +147,7 @@ export default async function handler(req, res) {
                         size: item.size
                     })
                 );
-        // =================================================
-        // HASIL FILE
-        // =================================================
+// =================================================// HASIL FILE// =================================================
         return res.status(200).json({
             success: true,
             folder: folderLower,
